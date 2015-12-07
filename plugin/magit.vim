@@ -27,6 +27,7 @@ let g:magit_discard_hunk_mapping   = get(g:, 'magit_discard_hunk_mapping',      
 let g:magit_commit_mapping         = get(g:, 'magit_commit_mapping',            'CC' )
 let g:magit_commit_amend_mapping   = get(g:, 'magit_commit_amend_mapping',      'CA' )
 let g:magit_commit_fixup_mapping   = get(g:, 'magit_commit_fixup_mapping',      'CF' )
+let g:magit_push_mapping           = get(g:, 'magit_push_mapping',              'gp' )
 let g:magit_reload_mapping         = get(g:, 'magit_reload_mapping',            'R' )
 let g:magit_ignore_mapping         = get(g:, 'magit_ignore_mapping',            'I' )
 let g:magit_close_mapping          = get(g:, 'magit_close_mapping',             'q' )
@@ -655,6 +656,7 @@ function! magit#show_magit(display, ...)
 	execute "nnoremap <buffer> <silent> " . g:magit_commit_mapping .       " :call magit#commit_command('CC')<cr>"
 	execute "nnoremap <buffer> <silent> " . g:magit_commit_amend_mapping . " :call magit#commit_command('CA')<cr>"
 	execute "nnoremap <buffer> <silent> " . g:magit_commit_fixup_mapping . " :call magit#commit_command('CF')<cr>"
+	execute "nnoremap <buffer> <silent> " . g:magit_push_mapping .         " :call magit#push()<cr>"
 	execute "nnoremap <buffer> <silent> " . g:magit_ignore_mapping .       " :call magit#ignore_file()<cr>"
 	execute "nnoremap <buffer> <silent> " . g:magit_close_mapping .        " :call magit#close_magit()<cr>"
 	execute "nnoremap <buffer> <silent> " . g:magit_toggle_help_mapping .  " :call magit#toggle_help()<cr>"
@@ -942,6 +944,27 @@ function! magit#jump_hunk(dir)
 			endtry
 		endwhile
 	endif
+endfunction
+
+function! magit#push()
+	call magit#git#refresh_remote_list()
+	let cur_branch = magit#git#current_branch()
+	let remote = input("Remote: ", magit#git#default_remote(cur_branch), 'customlist,magit#git#remote_comp')
+	if ( index(b:remote_names, remote) == -1 )
+		echohl WarningMsg
+		echom "Remote '" . remote . "' do not exists"
+		echohl None
+		return
+	endif
+	try
+		" beurk, dirty way to pass a parameter to a customlist function
+		let b:cur_push_remote = remote
+		let branch = input("Branch: ", cur_branch, 'customlist,magit#git#remote_branch_comp')
+	finally
+		let b:cur_push_remote = ""
+	endtry
+	call magit#git#push(remote, branch)
+	echom "Pushed on " . remote . "/" . branch
 endfunction
 
 command! Magit call magit#show_magit('v')
